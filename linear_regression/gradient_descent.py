@@ -64,20 +64,15 @@ def draw_line(x0, y0, w, size):
 
 x_train = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
 y_train = np.array([200.0, 350.0, 250.0, 320.0, 290.0])
-#x_train = np.array([1.0, 2.0])   #features
-#y_train = np.array([300.0, 500.0])   #target value
 
 # Calculate gradient descent
 alpha = 1.0e-2
-#alpha = 0.3
 iterations = 100000
 w_result, b_result, J_hist, p_hist = gradient_descent(x_train,y_train,0,0,alpha,iterations,cost_function,calculate_gradient)
 p_hist_w = []
 p_hist_b = []
 J_hist_out = []
 for i in range(len(J_hist)):
-    #if p_hist[i][1] > g_range or p_hist[i][0] > g_range:
-    #    break
     p_hist_w.append(p_hist[i][0])
     p_hist_b.append(p_hist[i][1])
     J_hist_out.append(J_hist[i])
@@ -96,11 +91,7 @@ for i in range(W.shape[0]):
 
 fig, axs = plt.subplots(subplot_kw=dict(projection='3d'))
 
-#X, Y, Z = axes3d.get_test_data(0.05)
-#surf = ax.plot_surface(x, cost_values, x, rstride=1, cstride=1, facecolors='r',linewidth=0, antialiased=False, shade=False)
-
-#axs.plot_wireframe(W, B, Z, color='grey', cstride=5, rstride=5, linewidth=0.5, label='Cost function')
-# Plot gradien descent history in 3D##
+# Plot gradien descent 3D history
 axs.plot3D(p_hist_w, p_hist_b, J_hist_out, c='magenta', linewidth=2, label='Gradient descent path')
 surf = axs.plot_surface(W, B, Z, rstride=5, cstride=5, cmap='winter', linewidth=1, alpha=0.3, antialiased=False, shade=False, label='Cost function')
 
@@ -119,19 +110,13 @@ cost_vals = np.zeros_like(w_vals_f2)
 for idx, w in enumerate(w_vals_f2):
     cost_vals[idx] = cost_function(x_train, y_train, w, b_0)
 
-# Plot
 fig, ax = plt.subplots()
-plt.subplots_adjust(bottom=0.25)  # Leave space for slider
+plt.subplots_adjust(bottom=0.25)
 
-#plt.scatter(x_train, y_train, marker='x', c='r', label = "Real Values")
 ax.plot(w_vals_f2, cost_vals, marker='', c='b', label = "Prediction")
 dashed_line, = ax.plot([], [], linestyle='dashed', color='r', label='Gradient Line')
-#draw_line(20, cost_function(x_train,y_train, 20, b_0), calculate_gradient(x_train,y_train, 20, b_0)[0], 10)
-# Set the title
 plt.title("Cost function with respect to w. b=300")
-# Set the y-axis label
 plt.ylabel('Cost')
-# Set the x-axis label
 plt.xlabel('W')
 plt.legend()
 
@@ -150,7 +135,6 @@ def update(val):
     w = freq_slider.val
     y = cost_function(x_train, y_train, w, b_0)
     slope = calculate_gradient(x_train, y_train, w, b_0)[0]
-
     size = 10
     b_line = y - slope * w
     x1 = w - size
@@ -160,16 +144,15 @@ def update(val):
 
     for text in ax.texts:
         text.remove()
-    # Update dashed line data
+
     dashed_line.set_data([x1, x2], [y1, y2])
     ax.text(w+5, y, r"$\frac{\partial J(w, b)}{\partial w}$ = " + str(round(slope)), fontsize=12)
-    #draw_line(freq_slider.val, cost_function(x_train,y_train, freq_slider.val, b_0), calculate_gradient(x_train,y_train, freq_slider.val, b_0)[0], 10)
     fig.canvas.draw_idle()
 
 update(0)
 freq_slider.on_changed(update)
 
-# Plot cost versus iteration  
+# Plot cost vs. iteration  
 fig, (ax1, ax2) = plt.subplots(1, 2, constrained_layout=True, figsize=(12,4))
 ax1.plot(J_hist[:100])
 ax2.plot(1000 + np.arange(len(J_hist[1000:])), J_hist[1000:])
