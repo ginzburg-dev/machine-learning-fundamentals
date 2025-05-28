@@ -9,6 +9,7 @@ def mean(X):
     mean /= n
     return mean
 
+# Variance measures how much the values in a dataset spread out from the mean. Total squared error
 def variance(X):
     n = X.shape[0]
     mean = np.mean(X)
@@ -18,7 +19,12 @@ def variance(X):
     variance /= n
     return variance
 
+# A measure of how spread out the data is around the mean. On average, how far is a value from the mean. Average error in original units
 def standard_deviation(X):
+    standard_deviation = np.sqrt(variance(X))
+    return standard_deviation
+
+def standard_deviation_custom(X):
     n = X.shape[0]
     standard_deviation = 0
     mean = np.mean(X)
@@ -26,10 +32,6 @@ def standard_deviation(X):
         standard_deviation += (X[i] - mean)**2
     standard_deviation /= n
     standard_deviation = np.sqrt(standard_deviation)
-    return standard_deviation
-
-def standard_deviation2(X):
-    standard_deviation = np.sqrt(variance(X))
     return standard_deviation
 
 X_train = np.array([100, 293, 55, 303, 600, 600])
@@ -43,5 +45,5 @@ print(f"Variance: {variance(X_train)}")
 print(f"Numpy variance: {np.var(X_train)}")
 
 print(f"Standart deviation: {standard_deviation(X_train)}")
-print(f"Standart deviation2: {standard_deviation2(X_train)}")
+print(f"Standart deviation custom: {standard_deviation_custom(X_train)}")
 print(f"Numpy standart deviation: {np.std(X_train)}")
