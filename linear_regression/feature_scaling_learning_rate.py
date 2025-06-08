@@ -40,14 +40,34 @@ def gradient_descent(x, y, iterations, alpha):
 
         if i % 1 == 0:
             outstr = f"Iteration {i}: {J_hist[-1][0]:.2f}, "
-            #for j in range(len(dj_dw_i)):
-            #    outstr += f"w{j}: {w_final[j]}, "
+            for j in range(len(dj_dw_i)):
+                outstr += f"w{j}: {w_final[j]}, "
             #outstr += f"b: {b_final}, "
             #for j in range(len(dj_dw_i)):
             #    outstr += f"djdw{j}: {dj_dw_i[j]}, "
             print(outstr)
     print(f"w, b found by gradient descent: w:{w_final}, b: {b_final}")
     return w_final, b_final, J_hist
+    
+def mean_normalize(X):
+    mean = np.mean(X,axis=0)
+    max = np.max(X,axis=0)
+    min = np.min(X,axis=0)
+    normalized = (X - mean) / (max - min)
+    return normalized, mean, max, min
+
+def z_score_normalize(X):
+    mean = np.mean(X,axis=0)
+    sigma = np.std(X,axis=0)
+    normalized = (X - mean) / sigma
+    return normalized, mean, sigma
+
+def predict(data, w, b, mean, sigma):
+    data_norm = (data - mean)/sigma
+    #print(data_norm)
+    data_predict = np.dot(data_norm, w) + b
+    return data_predict
+
 
 def plot_train_data(x, y, features):
     fig,ax=plt.subplots(1, 4, figsize=(12, 3), sharey=True)
@@ -57,12 +77,12 @@ def plot_train_data(x, y, features):
     ax[0].set_ylabel("Price (1000's)")
     plt.show()
 
-def plot_cost_i_w(x, y, hist):
+def plot_cost_i_w(x, y, hist, step):
     fig, ax = plt.subplots(1, 2, figsize=(12,3))
     iter = np.arange(len(hist))
     costs = np.array([item[0] for item in hist])
     w0 = np.array([item[1][0] for item in hist])
-    w0_x = np.arange(np.min(w0), np.max(w0), 0.001)
+    w0_x = np.arange(np.min(w0), np.max(w0),step)
     cost_y = np.zeros((w0_x.shape[0],))
     for i in range(w0_x.shape[0]):
         w_for_test = np.zeros_like(hist[0][1])
@@ -73,6 +93,42 @@ def plot_cost_i_w(x, y, hist):
     ax[1].plot(w0_x,cost_y)
     plt.show()
 
+def plot_scaled_features(X):
+    X_mean,_,_,_ = mean_normalize(X)
+    X_zscore,_,_ = z_score_normalize(X)
+
+    fig, ax = plt.subplots(1,3, figsize=(12, 3))
+    ax[0].scatter(X[:,0], X[:,3])
+    ax[0].set_xlabel(X_features[0])
+    ax[0].set_ylabel(X_features[3])
+    ax[0].set_title("unnormalized")
+    ax[0].axis('equal')
+
+    ax[1].scatter(X_mean[:,0], X_mean[:,3])
+    ax[1].set_xlabel(X_features[0])
+    ax[1].set_ylabel(X_features[3])
+    ax[1].set_title(r"(X - $\mu$)/(min-max)")
+    ax[1].axis('equal')
+
+    ax[2].scatter(X_zscore[:,0], X_zscore[:,3])
+    ax[2].set_xlabel(X_features[0])
+    ax[2].set_ylabel(X_features[3])
+    ax[2].set_title(r"Z-score normalized")
+    ax[2].axis('equal')
+    plt.tight_layout(rect=[0.05,0.05,0.95,0.95]) # packing the layout
+    fig.suptitle("distribution of features (raw, mean normalized, z-score normalized)")
+    plt.show()
+
+def plot_normalized_data(x, y, features_name):
+    X_norm,_,_ = z_score_normalize(x)
+
+    fig,ax = plt.subplots(1, 4, figsize=(12, 3))
+    for i in range(len(ax)):
+        ax[i].hist(X_norm[:,i])
+        ax[i].set_xlabel(features_name[i])
+    fig.suptitle("distribution of features after normalization")
+    plt.tight_layout(rect=[0,0.05,1,0.95])
+    plt.show()
 
 X_train = np.array([[1.24e+03, 3.00e+00, 1.00e+00, 6.40e+01], 
         [1.95e+03, 3.00e+00, 2.00e+00, 1.70e+01],
@@ -187,7 +243,35 @@ y_train = np.array([300., 509.8,  394.,   540.,   415.,  230.,   560.,   294.,  
 
 X_features = ['size(sqft)', 'bedrooms', 'floors', 'age']
 
+# run gradient descent
 _, _, hist = gradient_descent(X_train, y_train, 10, alpha=1e-7)
-plot_cost_i_w(X_train, y_train, hist)
+plot_cost_i_w(X_train, y_train, hist, step=0.001)
 
 plot_train_data(X_train, y_train, X_features)
+plot_scaled_features(X_train)
+plot_normalized_data(X_train, y_train, X_features)
+
+# run gradient descent with normalized data
+X_normalized,x_mean,x_sigma = z_score_normalize(X_train)
+w_final_norm, b_final_norm, hist_norm = gradient_descent(X_normalized, y_train, 1000, alpha=1e-1)
+plot_cost_i_w(X_normalized, y_train, hist_norm, step=0.1)
+
+# plot targer vs prediction using z-score normalized model
+m = X_normalized.shape[0]
+y_predict = np.zeros(m)
+for i in range(m):
+    y_predict[i] = np.dot(X_normalized[i], w_final_norm) + b_final_norm
+fig,ax = plt.subplots(1, 4, figsize=(12, 3), sharey=True)
+for i in range(len(ax)):
+    ax[i].scatter(X_train[:,i], y_train, label='target')
+    ax[i].set_xlabel(X_features[i])
+    ax[i].scatter(X_train[:,i], y_predict, label='predict')
+ax[0].set_ylabel("Price"); ax[0].legend()
+plt.tight_layout(rect=[0, 0.05, 1, 0.95])
+fig.suptitle("targer vs prediction using z-score normalized model")
+plt.show()
+
+# predict a house price using our trained model
+x_house = np.array([1200, 3, 1, 40])
+x_house_predict = predict(x_house,w_final_norm,b_final_norm, x_mean, x_sigma)
+print(f"predicted price of a house with 1200 sqft, 3 bedrooms, 1 floor, 40 years old = ${x_house_predict*1000:0.0f}")
