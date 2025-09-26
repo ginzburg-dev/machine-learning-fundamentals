@@ -159,6 +159,7 @@ x_cv_mapped_scaled = scaler.transform(x_cv_mapped)
 x_test_mapped_scaled = scaler.transform(x_test_mapped)
 
 # build train models
+tf.random.set_seed(1234)
 
 nn_models = [
     Sequential([
@@ -174,11 +175,16 @@ nn_models = [
         tf.keras.layers.Dense(1, activation='linear', name='L5')
     ]),
     Sequential([
-        tf.keras.layers.Dense(32, activation='relu', name='L1'),
-        tf.keras.layers.Dense(16, activation='relu', name='L2'),
-        tf.keras.layers.Dense(8, activation='relu', name='L3'),
-        tf.keras.layers.Dense(4, activation='relu', name='L4'),
-        tf.keras.layers.Dense(12, activation='relu', name='L5'),
+        tf.keras.layers.Dense(32, activation='relu', name='L1', 
+                            kernel_regularizer=tf.keras.regularizers.l2(0.01)),
+        tf.keras.layers.Dense(16, activation='relu', name='L2', 
+                            kernel_regularizer=tf.keras.regularizers.l2(0.01)),
+        tf.keras.layers.Dense(8, activation='relu', name='L3', 
+                            kernel_regularizer=tf.keras.regularizers.l2(0.01)),
+        tf.keras.layers.Dense(4, activation='relu', name='L4', 
+                            kernel_regularizer=tf.keras.regularizers.l2(0.01)),
+        tf.keras.layers.Dense(12, activation='relu', name='L5', 
+                            kernel_regularizer=tf.keras.regularizers.l2(0.01)),
         tf.keras.layers.Dense(1, activation='linear', name='L6')
     ])
 ]
