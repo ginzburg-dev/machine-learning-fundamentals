@@ -5,7 +5,6 @@ from utils.feature_normalization_util import z_score_normalize
 from utils.gradient_descent_util import run_gradient_descent, predict
 
 #np.set_printoptions(precision=2)  # reduced display precision on numpy arrays
-
 # y = 1 + x**2, no engineering
 def no_engineering():
     x = np.arange(0, 20, 1)
