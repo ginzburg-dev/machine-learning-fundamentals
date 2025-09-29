@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 
 RANDOM_STATE = 55 ## We will pass it to every sklearn call so we ensure reproducibility
 
-df = pd.read_csv('/Users/dmitryginzburg/Development/machine-learning-fundamentals/advanced_learning_algorithms/01_neural_networks/heart_dataset.csv')
+df = pd.read_csv('advanced_learning_algorithms/01_neural_networks/heart_dataset.csv')
 print(df.head())
 
 # split  cathegorical cariables with n>3 outputs into n binary variables. one-hot encoding

@@ -172,3 +172,5 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+.DS_Store
+advanced_learning_algorithms/.DS_Store
