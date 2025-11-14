@@ -75,6 +75,6 @@ with torch.no_grad():
     denoised = torch.clamp(denoised, 0.0, 1.0)   # keep valid [0,1] range
 
 denoised_img = to_pil(denoised.squeeze(0).cpu())
-denoised_img.save("denoised.png")
+denoised_img.save("pytorch/images/denoised.png")
 
 print("Saved denoised image as denoised.png")
