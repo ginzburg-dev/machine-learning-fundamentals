@@ -118,8 +118,8 @@ def train_mode(args, device):
             running_loss += loss.item()
 
         avg_loss = running_loss / args.steps_per_epoch
-        print(f"Epoch {epoch+1}/{args.epochs}, loss = {loss.item():.6f},",
-              f"PROGRESS: {int(((epoch+1)/args.epochs)*100)}%")
+        print(f"Epoch {epoch+1}/{args.epochs}, loss = {loss.item():.6f},", # type: ignore
+            f"PROGRESS: {int(((epoch+1)/args.epochs)*100)}%")
 
     # save weights
     torch.save(model.state_dict(), args.weights_out)

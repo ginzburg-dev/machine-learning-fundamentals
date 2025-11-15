@@ -75,7 +75,7 @@ for epoch in range(num_epochs):
 
     if (epoch + 1) % 1 == 0:
         print(f"Epoch {epoch+1}/{num_epochs}, loss = {loss.item():.6f},",
-              f"PROGRESS: {int(((epoch+1)/num_epochs)*100)}%")
+            f"PROGRESS: {int(((epoch+1)/num_epochs)*100)}%")
         sys.stdout.flush()
 
 # --- Inspect first conv layer weights ---
@@ -87,7 +87,7 @@ print("First conv weight shape:", w.shape)
 
 # print first filter for the R channel (out_ch=0, in_ch=0)
 print("Kernel[0, 0, :, :]:")
-print(w[0, 0, :, :])
+print(w[0, 0, :, :]) # type: ignore
 
 # ---------------------------
 # 5. Run model and save result

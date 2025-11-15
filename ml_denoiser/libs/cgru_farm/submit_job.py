@@ -3,14 +3,11 @@ import sys
 import af
 import argparse
 
-def parser_args():
-    parser = argparse.ArgumentParser("Submit job argparser")
-    parser.add_argument("jobname")
-
 def submit_job(
         name: str,
         command: str,
-        working_dir: str = os.environ.get("PIPELINE_TOOLS")) -> None:
+        working_dir: str = os.environ.get("PIPELINE_TOOLS")
+) -> None:
     print(f"Working Dir: {working_dir}")
     print("CGRU_LOCATION =", os.environ.get("CGRU_LOCATION"))
     job = af.Job(name)
@@ -32,4 +29,4 @@ def submit_job(
 
 if __name__ == "__main__":
     submit_job('torch_train_job', 
-               f"tools\\wrappers\\af_wrapper.bat python {" ".join(sys.argv[1:])}")
+        f"tools\\wrappers\\af_wrapper.bat python {" ".join(sys.argv[1:])}")
