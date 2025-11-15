@@ -1,0 +1,187 @@
+#! C:/Program Files/Nuke12.2v5/nuke-12.2.5.dll -nx
+#write_info Write1 file:"C:/Ginzburg/Production/Development/machine-learning-fundamentals/pytorch/images/val_tb_env_noisy.png" format:"2048 1556 1" chans:":" framerange:"1 100" fps:"0" colorspace:"default (sRGB)" datatype:"16 bit" transfer:"unknown" views:"main" colorManagement:"Nuke"
+version 12.2 v5
+define_window_layout_xml {<?xml version="1.0" encoding="UTF-8"?>
+<layout version="1.0">
+    <window x="0" y="0" w="1275" h="663" screen="0">
+        <splitter orientation="1">
+            <split size="40"/>
+            <dock id="" hideTitles="1" activePageId="Toolbar.1">
+                <page id="Toolbar.1"/>
+            </dock>
+            <split size="612" stretch="1"/>
+            <splitter orientation="2">
+                <split size="365"/>
+                <dock id="" activePageId="Viewer.1" focus="true">
+                    <page id="Viewer.1"/>
+                </dock>
+                <split size="256"/>
+                <dock id="" activePageId="DAG.1">
+                    <page id="DAG.1"/>
+                    <page id="Curve Editor.1"/>
+                    <page id="DopeSheet.1"/>
+                </dock>
+            </splitter>
+            <split size="615"/>
+            <dock id="" activePageId="Properties.1">
+                <page id="Properties.1"/>
+                <page id="uk.co.thefoundry.backgroundrenderview.1"/>
+            </dock>
+        </splitter>
+    </window>
+</layout>
+}
+Root {
+ inputs 0
+ name C:/Ginzburg/Production/Development/machine-learning-fundamentals/pytorch/images/compare.nk
+ format "2048 1556 0 0 2048 1556 1 2K_Super_35(full-ap)"
+ proxy_type scale
+ proxy_format "1024 778 0 0 1024 778 1 1K_Super_35(full-ap)"
+ colorManagement Nuke
+ workingSpaceLUT linear
+ monitorLut sRGB
+ int8Lut sRGB
+ int16Lut sRGB
+ logLut Cineon
+ floatLut linear
+}
+Write {
+ inputs 0
+ file C:/Ginzburg/Production/Development/machine-learning-fundamentals/pytorch/images/val_tb_env_noisy.png
+ file_type png
+ datatype "16 bit"
+ checkHashOnRead false
+ version 1
+ name Write1
+ xpos -1300
+ ypos 247
+}
+Read {
+ inputs 0
+ file_type png
+ file C:/Ginzburg/Production/Development/machine-learning-fundamentals/pytorch/images/tb_noisy.png
+ format "1920 1080 0 0 1920 1080 1 HD_1080"
+ origset true
+ name Read4
+ xpos -260
+ ypos -136
+}
+Read {
+ inputs 0
+ file_type png
+ file C:/Ginzburg/Production/Development/machine-learning-fundamentals/pytorch/images/tb_clean.png
+ format "1920 1080 0 0 1920 1080 1 HD_1080"
+ origset true
+ name Read3
+ xpos -150
+ ypos -136
+}
+Read {
+ inputs 0
+ file_type png
+ file C:/Ginzburg/Production/Development/machine-learning-fundamentals/pytorch/images/model_dmx003x_tb_char_denoised_validation.png
+ format "1920 1080 0 0 1920 1080 1 HD_1080"
+ origset true
+ name Read10
+ xpos -240
+ ypos -50
+}
+Read {
+ inputs 0
+ file_type png
+ file C:/Ginzburg/Production/Development/machine-learning-fundamentals/pytorch/images/model_dmx002x_tb_denoised.png
+ format "1920 1080 0 0 1920 1080 1 HD_1080"
+ origset true
+ name Read2
+ xpos -40
+ ypos -136
+}
+Read {
+ inputs 0
+ file_type png
+ file C:/Ginzburg/Production/Development/machine-learning-fundamentals/pytorch/images/model_dmx003x_tb_env_denoised_validation.png
+ format "1920 1080 0 0 1920 1080 1 HD_1080"
+ origset true
+ name Read8
+ xpos -1301
+ ypos 157
+}
+Read {
+ inputs 0
+ file_type png
+ file C:/Ginzburg/Production/Development/machine-learning-fundamentals/pytorch/images/val_tb_env_noisy.png
+ format "1920 1080 0 0 1920 1080 1 HD_1080"
+ origset true
+ name Read9
+ xpos -1140
+ ypos 165
+}
+Read {
+ inputs 0
+ file_type png
+ file C:/Ginzburg/Production/Development/machine-learning-fundamentals/pytorch/images/tb_env_noisy.png
+ format "1920 1080 0 0 1920 1080 1 HD_1080"
+ origset true
+ name Read6
+ xpos -1196
+ ypos 74
+}
+Read {
+ inputs 0
+ file_type png
+ file C:/Ginzburg/Production/Development/machine-learning-fundamentals/pytorch/images/tb_env_clean.png
+ format "1920 1080 0 0 1920 1080 1 HD_1080"
+ origset true
+ name Read5
+ xpos -1296
+ ypos 72
+}
+Read {
+ inputs 0
+ file_type png
+ file C:/Ginzburg/Production/Development/machine-learning-fundamentals/pytorch/images/model_dmx001x_tb_denoised.png
+ format "1920 1080 0 0 1920 1080 1 HD_1080"
+ origset true
+ name Read1
+ xpos 70
+ ypos -136
+}
+Read {
+ inputs 0
+ file_type png
+ file C:/Ginzburg/Production/Development/machine-learning-fundamentals/pytorch/images/model_dmx003x_tb_env_denoised_v01.png
+ format "1920 1080 0 0 1920 1080 1 HD_1080"
+ origset true
+ name Read7
+ xpos -1096
+ ypos 74
+}
+Read {
+ inputs 0
+ file_type png
+ file C:/Ginzburg/Production/Development/machine-learning-fundamentals/pytorch/images/model_dmx003x_denoised_validation.png
+ format "1275 967 0 0 1275 967 1 "
+ origset true
+ name Read12
+ xpos -494
+ ypos -113
+}
+Read {
+ inputs 0
+ file_type png
+ file C:/Ginzburg/Production/Development/machine-learning-fundamentals/pytorch/images/noisy.png
+ format "1275 967 0 0 1275 967 1 "
+ origset true
+ name Read11
+ xpos -592
+ ypos -117
+}
+Viewer {
+ inputs 4
+ frame 1
+ frame_range 1-100
+ name Viewer1
+ selected true
+ xpos -40
+ ypos -10
+}
