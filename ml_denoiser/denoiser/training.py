@@ -1,8 +1,9 @@
+import sys
 from typing import Tuple, Any
 from abc import ABC, abstractmethod
 from pathlib import Path
 
-from pytorch.denoiser.dataset import (
+from ml_denoiser.denoiser.dataset import (
     random_patch_pair,
 )
 
@@ -11,10 +12,6 @@ from torch import nn
 from torch.nn.modules.loss import _Loss
 from torch.optim import Optimizer, Adam
 from torch.utils.data import DataLoader, Dataset
-
-import structlog
-
-LOGGER = structlog.get_logger("DNN Logger")
 
 
 def train_one_epoch(
@@ -31,23 +28,16 @@ def train_one_epoch(
     model.train()
     num_steps = 0.0
     running_loss = 0.0
-    for input, target, alpha in dataloader:
-        for _ in range(steps_per_batch):
-            input_patch, target_patch, found = random_patch_pair(
-                input=input,
-                target=target,
-                patch_size=patch_size,
-                alpha=alpha,
-                max_alpha_search_tries=max_alpha_search_tries)
-            
-            if found is None:
-                continue
 
-            input = input_patch.to(device)
-            target = target_patch.to(device)
+    total_batches = len(dataloader)
+    print(f"[train_one_epoch] total batches: {total_batches}", flush=True)
 
-            pred = model(input)
-            loss = loss_fn(pred, target)
+    for batch_idx, (input_batch, target_batch) in enumerate(dataloader):
+            input_batch = input_batch.to(device, non_blocking=True)
+            target_batch = target_batch.to(device, non_blocking=True)
+
+            pred = model(input_batch)
+            loss = loss_fn(pred, target_batch)
 
             optimizer.zero_grad()
             loss.backward()
@@ -55,6 +45,9 @@ def train_one_epoch(
 
             running_loss += loss.item()
             num_steps += 1
+
+            if (batch_idx + 1) % 10 == 0 or (batch_idx + 1) == total_batches:
+                print(f"[epoch batch] {batch_idx+1}/{total_batches}", flush=True)
 
     return running_loss/max(num_steps, 1)
 
@@ -69,9 +62,9 @@ def evaluate(
     model.eval()
     num_batches = 0.0
     running_loss = 0.0
-    for input, target, _ in dataloader:
-            input = input.to(device)
-            target = target.to(device)
+    for input, target in dataloader:
+            input = input.to(device, non_blocking=True)
+            target = target.to(device, non_blocking=True)
 
             pred = model(input)
             loss = loss_fn(pred, target)
@@ -91,7 +84,7 @@ def fit(
     device: torch.device,
     epochs: int,
     output_weights: str | Path,
-    print_every_n_steps: int = 10,
+    print_every_n_steps: int = 1,
     steps_per_batch: int = 200,
     patch_size: int = 64,
     max_alpha_search_tries: int = 50,
@@ -113,6 +106,12 @@ def fit(
     best_model_state = last_model_state = model.state_dict()
 
     best_cv_loss: float = float("inf")
+
+    print("Starting training...", flush=True)
+    print(f"Train batches per epoch: {len(train_loader)}", flush=True)
+    if cv_loader is not None:
+        print(f"CV batches per epoch:    {len(cv_loader)}", flush=True)
+    print("PROGRESS: 0%", flush=True)
 
     for epoch in range(1, epochs + 1):
         train_loss: float = train_one_epoch(
@@ -141,6 +140,7 @@ def fit(
                 print(f"Epoch {epoch+1}/{epochs}, train_loss = {train_loss:.6f},",
                     f"cv_loss = {cv_loss:.6f}," if cv_loader is not None else "",
                     f"PROGRESS: {int(((epoch+1)/epochs)*100)}%")
+                sys.stdout.flush()
 
     return_model_state = best_model_state if cv_loader is not None else last_model_state
 

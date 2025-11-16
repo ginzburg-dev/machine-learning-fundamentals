@@ -1,5 +1,4 @@
 #! C:/Program Files/Nuke12.2v5/nuke-12.2.5.dll -nx
-#write_info Write1 file:"C:/Ginzburg/Production/Development/machine-learning-fundamentals/pytorch/images/val_tb_env_noisy.png" format:"2048 1556 1" chans:":" framerange:"1 100" fps:"0" colorspace:"default (sRGB)" datatype:"16 bit" transfer:"unknown" views:"main" colorManagement:"Nuke"
 version 12.2 v5
 define_window_layout_xml {<?xml version="1.0" encoding="UTF-8"?>
 <layout version="1.0">
@@ -9,20 +8,20 @@ define_window_layout_xml {<?xml version="1.0" encoding="UTF-8"?>
             <dock id="" hideTitles="1" activePageId="Toolbar.1">
                 <page id="Toolbar.1"/>
             </dock>
-            <split size="612" stretch="1"/>
+            <split size="807" stretch="1"/>
             <splitter orientation="2">
                 <split size="365"/>
-                <dock id="" activePageId="Viewer.1" focus="true">
+                <dock id="" activePageId="Viewer.1">
                     <page id="Viewer.1"/>
                 </dock>
                 <split size="256"/>
-                <dock id="" activePageId="DAG.1">
+                <dock id="" activePageId="DAG.1" focus="true">
                     <page id="DAG.1"/>
                     <page id="Curve Editor.1"/>
                     <page id="DopeSheet.1"/>
                 </dock>
             </splitter>
-            <split size="615"/>
+            <split size="420"/>
             <dock id="" activePageId="Properties.1">
                 <page id="Properties.1"/>
                 <page id="uk.co.thefoundry.backgroundrenderview.1"/>
@@ -45,47 +44,6 @@ Root {
  logLut Cineon
  floatLut linear
 }
-Write {
- inputs 0
- file C:/Ginzburg/Production/Development/machine-learning-fundamentals/pytorch/images/val_tb_env_noisy.png
- file_type png
- datatype "16 bit"
- checkHashOnRead false
- version 1
- name Write1
- xpos -1300
- ypos 247
-}
-Read {
- inputs 0
- file_type png
- file C:/Ginzburg/Production/Development/machine-learning-fundamentals/pytorch/images/tb_noisy.png
- format "1920 1080 0 0 1920 1080 1 HD_1080"
- origset true
- name Read4
- xpos -260
- ypos -136
-}
-Read {
- inputs 0
- file_type png
- file C:/Ginzburg/Production/Development/machine-learning-fundamentals/pytorch/images/tb_clean.png
- format "1920 1080 0 0 1920 1080 1 HD_1080"
- origset true
- name Read3
- xpos -150
- ypos -136
-}
-Read {
- inputs 0
- file_type png
- file C:/Ginzburg/Production/Development/machine-learning-fundamentals/pytorch/images/model_dmx003x_tb_char_denoised_validation.png
- format "1920 1080 0 0 1920 1080 1 HD_1080"
- origset true
- name Read10
- xpos -240
- ypos -50
-}
 Read {
  inputs 0
  file_type png
@@ -99,32 +57,32 @@ Read {
 Read {
  inputs 0
  file_type png
- file C:/Ginzburg/Production/Development/machine-learning-fundamentals/pytorch/images/model_dmx003x_tb_env_denoised_validation.png
- format "1920 1080 0 0 1920 1080 1 HD_1080"
+ file C:/Ginzburg/Production/Development/machine-learning-fundamentals/pytorch/images/clean.png
+ format "1275 967 0 0 1275 967 1 "
  origset true
- name Read8
- xpos -1301
- ypos 157
+ name Read13
+ xpos -455
+ ypos -22
 }
 Read {
  inputs 0
  file_type png
- file C:/Ginzburg/Production/Development/machine-learning-fundamentals/pytorch/images/val_tb_env_noisy.png
- format "1920 1080 0 0 1920 1080 1 HD_1080"
+ file C:/Ginzburg/Production/Development/machine-learning-fundamentals/pytorch/images/noisy.png
+ format "1275 967 0 0 1275 967 1 "
  origset true
- name Read9
- xpos -1140
- ypos 165
+ name Read11
+ xpos -592
+ ypos -117
 }
 Read {
  inputs 0
  file_type png
- file C:/Ginzburg/Production/Development/machine-learning-fundamentals/pytorch/images/tb_env_noisy.png
- format "1920 1080 0 0 1920 1080 1 HD_1080"
+ file C:/Ginzburg/Production/Development/machine-learning-fundamentals/pytorch/images/model_dmx003x_denoised_validation.png
+ format "1275 967 0 0 1275 967 1 "
  origset true
- name Read6
- xpos -1196
- ypos 74
+ name Read12
+ xpos -456
+ ypos -114
 }
 Read {
  inputs 0
@@ -133,8 +91,48 @@ Read {
  format "1920 1080 0 0 1920 1080 1 HD_1080"
  origset true
  name Read5
- xpos -1296
- ypos 72
+ xpos -1354
+ ypos 66
+}
+Read {
+ inputs 0
+ file_type png
+ file C:/Ginzburg/Production/Development/machine-learning-fundamentals/pytorch/images/tb_env_noisy.png
+ format "1920 1080 0 0 1920 1080 1 HD_1080"
+ origset true
+ name Read6
+ xpos -1229
+ ypos 70
+}
+Read {
+ inputs 0
+ file_type png
+ file C:/Ginzburg/Production/Development/machine-learning-fundamentals/pytorch/images/val_tb_env_noisy.png
+ format "1920 1080 0 0 1920 1080 1 HD_1080"
+ origset true
+ name Read9
+ xpos -1094
+ ypos 163
+}
+Read {
+ inputs 0
+ file_type png
+ file C:/Ginzburg/Production/Development/machine-learning-fundamentals/pytorch/images/model_dmx003x_tb_env_denoised_validation.png
+ format "1920 1080 0 0 1920 1080 1 HD_1080"
+ origset true
+ name Read8
+ xpos -992
+ ypos 164
+}
+Read {
+ inputs 0
+ file_type png
+ file C:/Ginzburg/Production/Development/machine-learning-fundamentals/pytorch/images/tb_noisy.png
+ format "1920 1080 0 0 1920 1080 1 HD_1080"
+ origset true
+ name Read4
+ xpos -261
+ ypos -136
 }
 Read {
  inputs 0
@@ -153,32 +151,31 @@ Read {
  format "1920 1080 0 0 1920 1080 1 HD_1080"
  origset true
  name Read7
- xpos -1096
- ypos 74
+ xpos -1084
+ ypos 71
 }
 Read {
  inputs 0
  file_type png
- file C:/Ginzburg/Production/Development/machine-learning-fundamentals/pytorch/images/model_dmx003x_denoised_validation.png
- format "1275 967 0 0 1275 967 1 "
+ file C:/Ginzburg/Production/Development/machine-learning-fundamentals/pytorch/images/tb_clean.png
+ format "1920 1080 0 0 1920 1080 1 HD_1080"
  origset true
- name Read12
- xpos -494
- ypos -113
+ name Read3
+ xpos -150
+ ypos -136
 }
 Read {
  inputs 0
  file_type png
- file C:/Ginzburg/Production/Development/machine-learning-fundamentals/pytorch/images/noisy.png
- format "1275 967 0 0 1275 967 1 "
+ file C:/Ginzburg/Production/Development/machine-learning-fundamentals/pytorch/images/model_dmx003x_tb_char_denoised_validation.png
+ format "1920 1080 0 0 1920 1080 1 HD_1080"
  origset true
- name Read11
- xpos -592
- ypos -117
+ name Read10
+ xpos 243
+ ypos -222
 }
 Viewer {
  inputs 4
- frame 1
  frame_range 1-100
  name Viewer1
  selected true

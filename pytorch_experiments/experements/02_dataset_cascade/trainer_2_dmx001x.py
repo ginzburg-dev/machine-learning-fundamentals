@@ -5,6 +5,9 @@ from typing import Tuple
 
 from pathlib import Path
 
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(PROJECT_ROOT))
+
 import torch
 from torch import nn
 from torch.optim import Adam
@@ -12,9 +15,9 @@ from torch.utils.data import DataLoader, Dataset, random_split
 from torchvision import transforms
 from PIL import Image
 
-from pytorch.denoiser.models import UNet6Residual
-from pytorch.denoiser.training import fit
-from pytorch.denoiser.dataset import DenoiserPatchDataset, load_image_tensor, save_image
+from ml_denoiser.denoiser.models import UNet6Residual
+from ml_denoiser.denoiser.training import fit
+from ml_denoiser.denoiser.dataset import DenoiserPatchDataset, load_image_tensor, save_image
 
 def parse_args():
     p = argparse.ArgumentParser()
@@ -100,7 +103,7 @@ def apply_mode(args, device):
 
     model.eval()
 
-    noisy = load_image_tensor(args.input, device)
+    noisy = load_image_tensor(args.input).to(device)
     with torch.no_grad():
         denoised = model(noisy)
     save_image(denoised, args.output)

@@ -28,17 +28,24 @@ class DenoiserPatchDataset(Dataset):
         return len(self.pairs) * self.patches_per_image
 
     def __getitem__(self, index) -> Any:
-        noisy_path, clean_path = self.pairs[index]
+        img_idx = index // self.patches_per_image
+        noisy_path, clean_path = self.pairs[img_idx]
 
-        noisy = load_image_tensor(noisy_path, self.device)
-        clean = load_image_tensor(clean_path, self.device)
+        noisy = load_image_tensor(noisy_path)
+        clean = load_image_tensor(clean_path)
+
+        # If loader returns [1, 3, H, W] -> squeeze batch dim
+        if noisy.ndim == 4 and noisy.shape[0] == 1:
+            noisy = noisy.squeeze(0)
+        if clean.ndim == 4 and clean.shape[0] == 1:
+            clean = clean.squeeze(0)
 
         if self.patch_size is None:
             return noisy, clean
         
-        noisy_patch, clean_path, _ = random_patch_pair(noisy, clean, self.patch_size)
+        noisy_patch, clean_patch = random_patch_pair(noisy, clean, self.patch_size)
 
-        return noisy_patch, clean_path
+        return noisy_patch, clean_patch
 
 
 def build_pairs(input_dir: str | Path, pattern: str = "*.png"):
@@ -50,6 +57,7 @@ def build_pairs(input_dir: str | Path, pattern: str = "*.png"):
     for noisy_path in sorted(noisy_dir.glob(pattern)):
         name = noisy_path.name
         clean_path = clean_dir / name
+
         if clean_path.exists():
             pairs.append((noisy_path, clean_path))
         else:
@@ -61,10 +69,10 @@ def build_pairs(input_dir: str | Path, pattern: str = "*.png"):
     return pairs
 
 
-def load_image_tensor(path: str, device) -> torch.Tensor:
+def load_image_tensor(path: str) -> torch.Tensor:
     img = Image.open(path).convert("RGB")
     t = transforms.ToTensor()  # [0,1]
-    x = t(img).unsqueeze(0).to(device)
+    x = t(img).unsqueeze(0)
     return x
 
 
@@ -84,35 +92,15 @@ def random_patch_pair(
     max_alpha_search_tries: int = 50,
     alpha_threshold: float = 0.5,
 ) -> Tuple[torch.Tensor, torch.Tensor, bool]:
-    _, _, H, W = input.shape
+    C, H, W = input.shape
+
     if H < patch_size or W < patch_size:
         raise ValueError(f"Image smaller than patch size {patch_size}")
-
-    if alpha is not None:
-        alpha = alpha[:,3,4, :, :]
-        for _ in range(max_alpha_search_tries):
-            y = random.randint(0, H - patch_size)
-            x = random.randint(0, W - patch_size)
-
-            alpha_patch = alpha[..., y:y+patch_size, x:x+patch_size]
-            if alpha_patch.mean().item() > alpha_threshold:
-                return (
-                    input[..., y:y+patch_size, x:x+patch_size],
-                    target[..., y:y+patch_size, x:x+patch_size],
-                    True
-                )
-        # Return not found
-        return (
-            input[..., 0, 0],
-            target[..., 0, 0],
-            False
-        )
 
     y = random.randint(0, H - patch_size)
     x = random.randint(0, W - patch_size)
     return (
         input[..., y:y+patch_size, x:x+patch_size],
         target[..., y:y+patch_size, x:x+patch_size],
-        True
     )
 
