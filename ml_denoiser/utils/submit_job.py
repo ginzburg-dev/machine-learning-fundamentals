@@ -26,5 +26,5 @@ def submit_job(
     job.send()
 
 if __name__ == "__main__":
-    submit_job('torch_train_job',
-        f"tools\\wrappers\\af_wrapper.bat python {" ".join(sys.argv[1:])}")
+    submit_job(f"torch_{sys.argv[1]}_job",
+        f"tools\\wrappers\\af_wrapper.bat python {" ".join(sys.argv[2:])}")

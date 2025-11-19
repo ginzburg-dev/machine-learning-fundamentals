@@ -1,4 +1,6 @@
 import sys
+import os
+import shutil
 from typing import Tuple, Any
 from abc import ABC, abstractmethod
 from pathlib import Path
@@ -12,6 +14,7 @@ from torch import nn
 from torch.nn.modules.loss import _Loss
 from torch.optim import Optimizer, Adam
 from torch.utils.data import DataLoader, Dataset
+from torch.utils.tensorboard import SummaryWriter
 
 
 def train_one_epoch(
@@ -20,9 +23,6 @@ def train_one_epoch(
     optimizer: Optimizer,
     loss_fn: nn.Module,
     device: torch.device,
-    steps_per_batch: int = 200,
-    patch_size: int = 64,
-    max_alpha_search_tries: int = 50,
 ) -> float:
     """One epoch train step."""
     model.train()
@@ -46,7 +46,7 @@ def train_one_epoch(
             running_loss += loss.item()
             num_steps += 1
 
-            if (batch_idx + 1) % 10 == 0 or (batch_idx + 1) == total_batches:
+            if (batch_idx + 1) % (total_batches/4) == 0 or (batch_idx + 1) == total_batches:
                 print(f"[epoch batch] {batch_idx+1}/{total_batches}", flush=True)
 
     return running_loss/max(num_steps, 1)
@@ -72,7 +72,10 @@ def evaluate(
             running_loss += loss.item()
             num_batches += 1
 
-    return running_loss/max(num_batches, 1)
+    avg = running_loss/max(num_batches, 1)
+    print(f"[evaluate] Done. Avg loss: {avg:.6f}", flush=True)
+
+    return avg
 
 
 def fit(
@@ -84,11 +87,8 @@ def fit(
     device: torch.device,
     epochs: int,
     output_weights: str | Path,
-    print_every_n_steps: int = 1,
-    steps_per_batch: int = 200,
-    patch_size: int = 64,
-    max_alpha_search_tries: int = 50,
-) -> Tuple[dict[str, Any], Any, Any, Any]: 
+    print_every_n_steps: int = 1
+) -> Tuple[dict[str, Any], Path]: 
     """
     Training loop.
 
@@ -100,17 +100,31 @@ def fit(
             cross_validation_avg_loss: Average cross-validation loss.
     """
     output_weights = Path(output_weights)
+    output_best_weights = output_weights.with_name(output_weights.stem + 
+                                                        "_best" + output_weights.suffix)
     output_weights.parent.mkdir(parents=True, exist_ok=True)
+    checkpoint_output_weights = output_weights.with_name(output_weights.stem + 
+                                                        "_checkpoint" + output_weights.suffix)
+    
+    log_dir = output_weights.parent / "tensorboard_logs"
+
+    if log_dir.exists():
+        shutil.rmtree(log_dir)
+        print(f"Tensorboard logs cleaned up.")
+
+    log_dir.mkdir(parents=True, exist_ok=True)
+    print(f"Tensorboard log dir: {log_dir}")
+    
+    writer_train_loss = SummaryWriter(log_dir=str(log_dir / "train_loss"))
+    writer_cv_loss = SummaryWriter(log_dir=str(log_dir / "cv_loss"))
 
     found_best = False
-    best_model_state = last_model_state = model.state_dict()
-
+    best_model_state = model.state_dict()
+ 
     best_cv_loss: float = float("inf")
 
     print("Starting training...", flush=True)
     print(f"Train batches per epoch: {len(train_loader)}", flush=True)
-    if cv_loader is not None:
-        print(f"CV batches per epoch:    {len(cv_loader)}", flush=True)
     print("PROGRESS: 0%", flush=True)
 
     for epoch in range(1, epochs + 1):
@@ -119,41 +133,44 @@ def fit(
             train_loader,
             optimizer,
             loss_fn,
-            device,
-            steps_per_batch,
-            patch_size,
-            max_alpha_search_tries,
+            device
         )
-
+        
         if cv_loader is not None:
             cv_loss = evaluate(model, cv_loader, loss_fn, device)
         else:
             cv_loss = float("nan")
-
         if cv_loader is not None and cv_loss < best_cv_loss:
             best_cv_loss = cv_loss
             best_model_state = model.state_dict()
-            torch.save(best_model_state, output_weights)
-            found_best = True
+            torch.save(best_model_state, output_best_weights)
 
-        if (epoch + 1) % print_every_n_steps == 0:
-                print(f"Epoch {epoch+1}/{epochs}, train_loss = {train_loss:.6f},",
-                    f"cv_loss = {cv_loss:.6f}," if cv_loader is not None else "",
-                    f"PROGRESS: {int(((epoch+1)/epochs)*100)}%")
-                sys.stdout.flush()
+        writer_train_loss.add_scalar("loss/train", train_loss, epoch)
+        writer_cv_loss.add_scalar("loss/train",cv_loss, epoch)
+        torch.save(model.state_dict(), checkpoint_output_weights)
 
-    return_model_state = best_model_state if cv_loader is not None else last_model_state
-
-    if not found_best:
-        torch.save(model.state_dict(), output_weights)
+        if epoch % print_every_n_steps == 0:
+            progress = int(epoch / epochs * 100)
+            print(f"Epoch {epoch}/{epochs}, loss = {train_loss:.6f},",
+                  f"cv_loss = {cv_loss:.6f}," if cv_loader is not None else "", f"PROGRESS: {progress}%")
+            sys.stdout.flush()
 
     print(f"\nModel was trained successfully!")
+    torch.save(model.state_dict(), output_weights)
     print(f"Model weights saved to {output_weights}")
-
+    print(f"Model best weights saved to {output_best_weights}")
+    writer_train_loss.close()
+    writer_cv_loss.close()
+    
     return (
-        return_model_state,
+        model.state_dict(),
         output_weights,
-        train_loss, # pyright: ignore[reportPossiblyUnboundVariable]
-        cv_loss, # pyright: ignore[reportPossiblyUnboundVariable]
     )
+
+    # return (
+    #     return_model_state,
+    #     output_weights,
+    #     train_loss, # pyright: ignore[reportPossiblyUnboundVariable]
+    #     cv_loss, # pyright: ignore[reportPossiblyUnboundVariable]
+    # )
 
