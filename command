@@ -124,3 +124,5 @@ tools\wrappers\af_wrapper.bat python pytorch_experiments\experements\02_dataset_
 --input ml_denoiser\datasets\TGB\TGB001\train\noisy ^
 --output ml_denoiser\output\jobs\job_02_002\last_weight ^
 --weights-in ml_denoiser\output\jobs\job_02_001\trainer_2_dmx001x_train2_weights_checkpoint.pt
+
+tensorboard --logdir c:\Ginzburg\Production\Development\machine-learning-fundamentals\ml_denoiser\output\experiments\exp_001_overfit_one\tensorboard_logs\ --port 6006
