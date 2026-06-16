@@ -1,6 +1,6 @@
 import os
 import sys
-import af
+import af # pyright: ignore[reportMissingImports]
 import argparse
 from typing import List
 
@@ -26,11 +26,18 @@ class JobConfig:
     command_blocks: list[CommandBlock] = field(default_factory=list)
 
 def submit_job(job_config: JobConfig, parser: str = "generic") -> None:
-    """Submit task to AF Renderfarm"""
+    """Submit task to AF Renderfarm.
+    Args:
+        job_config (JobConfig): Configuration for the job to be submitted.
+        parser (str): Parser type for the job.
+        
+    As CLI: python -m ml_denoiser.utils.submit_af_job <task name> <command wih args>
+        example: python -m ml_denoiser.utils.submit_af_job denoise_dmx004x_model --mode train --input noisy.png --target clean.png --output denoised.png --epochs 100
+    """
     job = af.Job(job_config.name)
 
     for cmd_block in job_config.command_blocks:
-        block = af.Block(cmd_block.title, cmd_block.service)   # or custom service name you use
+        block = af.Block(cmd_block.title, cmd_block.service)
         block.setWorkingDirectory(working_directory=str(WORKING_DIR))
         block.setParser(parser=parser)
         for cmd in cmd_block.commands:

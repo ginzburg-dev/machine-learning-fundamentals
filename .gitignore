@@ -20,3 +20,5 @@ __pycache__
 /ml_denoiser/output/**/*.jpeg
 /ml_denoiser/output/**/*.tif
 /ml_denoiser/output/**/*.tiff
+
+.DS_Store

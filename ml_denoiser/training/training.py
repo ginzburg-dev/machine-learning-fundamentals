@@ -106,6 +106,16 @@ def fit(
             cross_validation_avg_loss: Average cross-validation loss.
     """
     output_weights = Path(output_weights)
+    log_dir = output_weights.parent / "tensorboard_logs"
+    if log_dir.exists():
+        shutil.rmtree(log_dir)
+        print(f"Tensorboard logs cleaned up.")
+
+    if tensorboard_output:
+        log_dir = Path(tensorboard_output)
+        log_dir.mkdir(parents=True, exist_ok=True)
+        print(f"Tensorboard log dir: {log_dir}")
+
     if output_weights.is_dir():
         output_weights = output_weights / "model_weights.pt"
     output_weights.parent.mkdir(parents=True, exist_ok=True)
@@ -115,19 +125,8 @@ def fit(
     checkpoint_output_dir = output_weights.parent / "checkpoints"
     checkpoint_output_dir.mkdir(parents=True, exist_ok=True)
     
-    
-    if tensorboard_output is None:
-         print("Tensorboard output path not provided, skipping Tensorboard logging.")
-    else:
-        log_dir = Path(tensorboard_output)
-        if log_dir.exists():
-            shutil.rmtree(log_dir)
-            print(f"Tensorboard logs cleaned up.")
-        log_dir.mkdir(parents=True, exist_ok=True)
-        print(f"Tensorboard log dir: {log_dir}")
-    
-        writer_train_loss = SummaryWriter(log_dir=str(log_dir / "train_loss"))
-        writer_cv_loss = SummaryWriter(log_dir=str(log_dir / "cv_loss"))
+    writer_train_loss = SummaryWriter(log_dir=str(log_dir / "train_loss"))
+    writer_cv_loss = SummaryWriter(log_dir=str(log_dir / "cv_loss"))
 
     best_model_state = model.state_dict()
     best_cv_loss: float = float("inf")
@@ -172,12 +171,12 @@ def fit(
         if epoch % print_every_n_steps == 0:
             progress = int(epoch / epochs * 100)
             print(f"Epoch {epoch}/{epochs}, loss = {train_loss:.6f},",
-                  f"cv_loss = {cv_loss:.6f}," if cv_loader is not None else "", f"PROGRESS: {progress}%")
+                f"cv_loss = {cv_loss:.6f}," if cv_loader is not None else "", f"PROGRESS: {progress}%")
             sys.stdout.flush()
 
     print(f"\nModel was trained successfully!")
-    torch.save(model.state_dict(), output_weights)
-    print(f"Model weights saved to {output_weights}")
+    torch.save(model.state_dict(), last_output_weights)
+    print(f"Model last weights saved to {last_output_weights}")
     print(f"Model best weights saved to {output_best_weights}")
     writer_train_loss.close()
     writer_cv_loss.close()

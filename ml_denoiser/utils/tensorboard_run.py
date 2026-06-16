@@ -4,7 +4,7 @@ import time
 from pathlib import Path
 
 
-LOG_DIR = sys.argv[1] if len(sys.argv) > 1 else Path.cwd() / "tensorboard_logs"
+LOG_DIR: Path = Path(sys.argv[1]) if len(sys.argv) > 1 else Path.cwd() / "tensorboard_logs"
 PORT = 6006
 
 def launch_tensorboard(log_dir: Path, port: int) -> None:

@@ -38,6 +38,7 @@ OUTPUT_EPOCH_SEQUENCE_DIR.mkdir(parents=True, exist_ok=True)
 OUTPUT_TEMPORAL_SEQUENCE_DIR = OUTPUT_IMAGES_DIR / "temporal_sequence"
 OUTPUT_TEMPORAL_SEQUENCE_DIR.mkdir(parents=True, exist_ok=True)
 
+
 def submit():
     model = "UNetResidual"
     loss = "L1Loss"
@@ -54,7 +55,6 @@ def submit():
     save_checkpoint_every = 10
     print_every_n_steps = 1
     lr = 1e-4
-    
 
     job_name = f"torch-{EXPERIMENT_NAME}-job"
     train_command = [

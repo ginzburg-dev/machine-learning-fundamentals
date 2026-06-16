@@ -8,20 +8,27 @@ from torchvision import transforms
 from torch.utils.data import Dataset, DataLoader
 
 from PIL import Image
-
 import OpenEXR, Imath
 import numpy as np
 
+
+class SampleInfo(NamedTuple):
+    noisy: Path
+    clean: Path
+    noise_level: str
+    subset: str
+    aovs_noisy: dict[str, Path]
+    aovs_clean: dict[str, Path]
 
 
 class DenoiserPatchDataset(Dataset):
     def __init__(
             self,
             input_dir: str | Path,
-            patch_size: int | None,
-            noise_level: Sequence[str] = {"high", "low", "verylow", "aggressive", "extreme", "mid"},
-            subset: Sequence[str] = {"anim"},
-            layers: Sequence[str] = {"chars", "env"},
+            patch_size: int,
+            noise_level: Sequence[str] = ("high", "low", "verylow", "aggressive", "extreme", "mid"),
+            subset: Sequence[str] = ("anim"),
+            layers: Sequence[str] = ("chars", "env"),
             cache_images: bool = True,
             split_by_patches: bool= True,
             patches_per_image: int = 100,
@@ -32,14 +39,14 @@ class DenoiserPatchDataset(Dataset):
         self.samples: list[SampleInfo] = []
         for layer in layers:
             self.samples.extend(collect_clean_noisy_samples(
-               root=self.input_dir,
-               layer=layer,
-               noise_levels={"high", "low", "verylow", "aggressive", "extreme", "mid"},
-               subsets={"anim"},
-               aovs={"rgba"},
-               ext=".exr",
-               n_first_samples=n_first_samples,
-               n_first_frames=n_first_frames
+                root=self.input_dir,
+                layer=layer,
+                noise_levels=("high", "low", "verylow", "aggressive", "extreme", "mid"),
+                subsets=("anim"),
+                aovs=("rgba"),
+                ext=".exr",
+                n_first_samples=n_first_samples,
+                n_first_frames=n_first_frames
             )
         )
         print(f"[dataset] collected {len(self.samples)} pairs")
@@ -108,7 +115,7 @@ class DenoiserPatchDataset(Dataset):
 
         if not self.split_by_patches:
             return noisy, clean
-        
+
         noisy_patch, clean_patch = random_patch_pair(noisy, clean, self.patch_size)
         if self.split_by_patches:
             if random.random() < 0.5:
@@ -123,24 +130,17 @@ class DenoiserPatchDataset(Dataset):
 def frame_key(path: Path) -> str:
     m = re.search(r"\.(\d+)\.[^.]+$", path.name)
     if m:
-        return m.group(1)   # '0001'
+        return m.group(1)
     else:
         return path.stem
 
-class SampleInfo(NamedTuple):
-    noisy: Path              # rgba noisy
-    clean: Path              # rgba clean
-    noise_level: str
-    subset: str
-    aovs_noisy: dict[str, Path]  # aov_name -> noisy path
-    aovs_clean: dict[str, Path]  # aov_name -> clean path
 
 def collect_clean_noisy_samples(
     root: Path,
-    layer: str = "chars",                         # "env" / "chars"
+    layer: str = "chars",
     noise_levels: Sequence[str] = ("high",),
     subsets: Sequence[str] = ("anim",),
-    aovs: Sequence[str] = (),                    # ("albedo","normal","depth")
+    aovs: Sequence[str] = (),
     ext: str = ".exr",
     n_first_samples: int | None = None,
     n_first_frames: int | None = None
@@ -157,13 +157,11 @@ def collect_clean_noisy_samples(
         if not clean_dir.is_dir():
             continue
 
-        # --- RGBA clean: frame -> path ---
         clean_rgba_by_frame: dict[str, Path] = {}
         for clean_rgba in clean_dir.glob(f"*{ext}"):
             fk = frame_key(clean_rgba)
             clean_rgba_by_frame[fk] = clean_rgba
 
-        # --- AOV clean: name -> (frame -> path) ---
         aov_clean_by_frame: dict[str, dict[str, Path]] = {}
         for aov_name in aovs:
             aov_clean_dir = shot_dir / layer / aov_name / "clean"
@@ -234,6 +232,7 @@ def collect_clean_noisy_samples(
     print(f"Collected {len(samples)} pairs")
     return samples
 
+
 def build_pairs(input_dir: Path | str, pattern: str = "*.png"):
     input_dir = Path(input_dir)
     noisy_dir = input_dir / "noisy"
@@ -258,12 +257,12 @@ def build_pairs(input_dir: Path | str, pattern: str = "*.png"):
 
 def load_pil_tensor(path: str | Path) -> torch.Tensor:
     img = Image.open(path).convert("RGB")
-    t = transforms.ToTensor()  # [0,1]
+    t = transforms.ToTensor()
     x = t(img).unsqueeze(0)
     return x
 
 
-def save_pil_tensor(tensor: torch.Tensor, path: str) -> None:
+def save_pil_tensor(tensor: torch.Tensor, path: Path) -> None:
     t = transforms.ToPILImage()
     img_tensor = tensor.detach().cpu().squeeze(0)
     img_tensor = img_tensor.clamp(0.0, 1.0)
@@ -290,7 +289,7 @@ def load_exr_tensor(path: str | Path) -> tuple[torch.Tensor, dict]:
         ch = ch.reshape((height, width))
         channels.append(ch)
 
-    img = np.stack(channels, axis=0)  # (C, H, W)
+    img = np.stack(channels, axis=0)
     tensor = torch.from_numpy(img)
     
     return tensor, header
@@ -299,7 +298,7 @@ def save_exr_tensor(t: torch.Tensor, path: str | Path, template_header: dict | N
     path = str(path)
 
     if t.dim() == 4 and t.shape[0] == 1:
-        t = t[0]  # (1, C, H, W) -> (C, H, W)
+        t = t[0]
     assert t.dim() == 3, f"Expected (C,H,W), got {t.shape}"
 
     t = t.detach().cpu().float()
@@ -310,7 +309,6 @@ def save_exr_tensor(t: torch.Tensor, path: str | Path, template_header: dict | N
 
     rgb = t[:3].numpy()
 
-    # ---------------- HEADER ----------------
     if template_header is not None:
         dw = template_header["dataWindow"]
         tw = dw.max.x - dw.min.x + 1
@@ -351,7 +349,6 @@ def save_exr_tensor(t: torch.Tensor, path: str | Path, template_header: dict | N
     channels["B"] = Imath.Channel(float_pt)
     header["channels"] = channels
 
-    # ---------------- WRITE ----------------
     out = OpenEXR.OutputFile(path, header)
     out.writePixels({
         "R": rgb[0].astype(np.float32).tobytes(),
@@ -389,6 +386,7 @@ def collect_images(input_path: Path) -> list[Path]:
         files = [input_path] if input_path.suffix.lower() in exts else []
 
     return sorted(files)
+
 
 def random_patch_pair(
     input: torch.Tensor,

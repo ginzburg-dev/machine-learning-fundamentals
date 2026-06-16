@@ -9,6 +9,7 @@ from torch.optim import Adam
 from torchvision import transforms
 from PIL import Image
 
+
 def get_model(name: str, in_channel: int, out_channel: int) -> nn.Module:
     if name == "UNet6Residual":
         return  UNet6Residual(channels=in_channel, base=out_channel)
@@ -18,6 +19,7 @@ def get_model(name: str, in_channel: int, out_channel: int) -> nn.Module:
         msg = f"Unknown model name: {name}"
         raise ValueError(msg)
 
+
 def get_model_code_name(model: str, in_channels: int, out_channels) -> str:
     if model == "UNet6Residual":
         return f"unet6res_{in_channels}ch_{out_channels}base"
@@ -26,6 +28,7 @@ def get_model_code_name(model: str, in_channels: int, out_channels) -> str:
     else:
         msg = f"Unknown model name: {model}"
         raise ValueError(msg)
+
 
 class UNet6Residual(nn.Module):
     """Predict NOISE then subtract"""
@@ -70,6 +73,7 @@ class ConvBlock(nn.Module):
 
     def forward(self, x):
         return self.net(x)
+
 
 class UNetResidual(nn.Module):
     """Small U-Net that predicts noise and subtracts it."""
