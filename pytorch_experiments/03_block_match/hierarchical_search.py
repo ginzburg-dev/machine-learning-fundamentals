@@ -16,9 +16,9 @@ class Point2d:
     y: int
 
 _IMAGES = [
-    "pytorch_experiments/03_block_match/examples/ball.0001.jpg",
-    "pytorch_experiments/03_block_match/examples/ball.0002.jpg",
-    "pytorch_experiments/03_block_match/examples/ball.0003.jpg",
+    "pytorch_experiments/03_block_match/examples/tennis/tennis.0001.jpg",
+    "pytorch_experiments/03_block_match/examples/tennis/tennis.0002.jpg",
+    "pytorch_experiments/03_block_match/examples/tennis/tennis.0003.jpg",
 ]
 
 _DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
@@ -39,6 +39,7 @@ def map_to_numpy(t: torch.Tensor) -> np.ndarray:
     t = t.detach().cpu()
     if t.ndim == 4:
         t = t.squeeze(0)
+    print(t.shape)
     return t.permute(1, 2, 0).detach().cpu().numpy()
 
 
@@ -49,13 +50,37 @@ def image_to_numpy(t: torch.Tensor) -> np.ndarray:
     return t.permute(1, 2, 0).detach().cpu().numpy() / 255.0
 
 
-def search_ssd(
+def wrap(t: torch.Tensor, grid: torch.Tensor) -> torch.Tensor:
+    b, c, h, w = t.shape
+    grid_y, grid_x = torch.meshgrid(
+        torch.arange(h, device=_DEVICE, dtype=torch.float32),
+        torch.arange(w, device=_DEVICE, dtype=torch.float32),
+        indexing="ij"
+    )
+    base_grid = torch.stack([grid_x, grid_y], dim=0)
+    print(base_grid.shape, grid.shape)
+    real_offset = base_grid - grid
+    grid_tensor = real_offset.permute(1, 2, 0).unsqueeze(0)
+    grid_tensor[..., 0] = 2*grid_tensor[..., 0]/(w - 1) - 1
+    grid_tensor[..., 1] = 2*grid_tensor[..., 1]/(h - 1) - 1
+
+    return F.grid_sample(t, grid_tensor, align_corners=False)
+
+
+def compute_offset(
         img1: torch.Tensor,
         img2: torch.Tensor,
         search_radius: int,
-        window_size: int
+        window_size: int,
+        guide: torch.Tensor | None = None,
 ) -> torch.Tensor:
-    """Search offsets"""
+    """Search offsets."""
+    if window_size % 2 == 0:
+        raise ValueError("winsow_size should be odd.")
+
+    if guide is not None:
+        img2 = wrap(img2, guide)
+
     offsets = [ (dx, dy)    for dy in range(-search_radius, search_radius + 1)
                             for dx in range(-search_radius, search_radius + 1)]
     
@@ -86,40 +111,65 @@ def search_ssd(
     ) * windows_area
 
     mono_local_batch_ssd = torch.sum(local_batch_ssd, dim=1)
-
     ssd_min_values, best_indices = torch.min(mono_local_batch_ssd, dim=0)
-
     offsets_tensor = torch.tensor(offsets, device=img1.device, dtype=torch.float32)
-
     best_offsets = offsets_tensor[best_indices]
 
     flow_dx = best_offsets[..., 0]
     flow_dy = best_offsets[..., 1]
-    flow_dz = torch.zeros_like(flow_dy)
 
-    flow = torch.stack([flow_dx, flow_dy, flow_dz], dim=0)
-    LOGGER.info("flow calculated", shape=flow.shape)
+    flow = torch.stack([flow_dx, flow_dy], dim=0)
+
+    if guide is not None:
+        flow = flow + guide
+
     return flow
 
 
-def main() -> None:
-    images = load_images()
-    img1 = F.avg_pool2d(images[0], kernel_size=8)
-    img2 = F.avg_pool2d(images[1], kernel_size=8)
-    flow = search_ssd(img1, img2, 40, 3)
-    plt.imshow(map_to_numpy(flow))
-    plt.show()
+def build_pyramid(t: torch.Tensor, n_levels: int = 3) -> list[tuple[torch.Tensor, int]]:
+    pyramid = [(t, 0)]
+    for i in range(n_levels):
+        t = F.avg_pool2d(t, kernel_size=2)
+        pyramid.append((t, i))
+    return pyramid
 
-    t = images[0]
-    x = F.avg_pool2d(t, kernel_size=2)
-    x = F.avg_pool2d(x, kernel_size=2)
-    x = F.avg_pool2d(x, kernel_size=2)
-    x = F.avg_pool2d(x, kernel_size=2)
-    x = F.avg_pool2d(x, kernel_size=2)
-    x = x.roll(shifts=(2, 2), dims=(1, 2))
-    x[..., :2, :] = 0
-    x[..., :, :2] = 0
-    img = x.permute(1, 2, 0).numpy() / 255.0
+
+def main() -> None:
+    window_size = 15
+    search_radius = 2
+
+    images = load_images()
+
+    img1_levels = build_pyramid(images[0])
+    img2_levels = build_pyramid(images[2])
+
+    reversed_range_ = list(range(len(img1_levels)))[::-1]
+    guide = None
+    flow: torch.Tensor = torch.zeros(0)
+    for i in reversed_range_:
+        flow = compute_offset(
+            img1_levels[i][0],
+            img2_levels[i][0],
+            search_radius,
+            window_size,
+            guide)
+        if i > 0:
+            guide = F.interpolate(
+                flow.unsqueeze(0),
+                scale_factor=2,
+                mode="bilinear",
+                align_corners=False,
+            ).squeeze(0) * 2
+
+    wrapped = wrap(images[1], flow)
+
+    fig, ax = plt.subplots(1, 4, figsize=(16, 4))
+    ax[0].imshow(image_to_numpy(images[0])); ax[0].set_title("img1 (target)")
+    ax[1].imshow(image_to_numpy(images[1])); ax[1].set_title("img2 (source)")
+    ax[2].imshow(image_to_numpy(wrapped)); ax[2].set_title("wrapped")
+    ax[3].imshow(image_to_numpy((images[0] - wrapped).abs())); ax[3].set_title("residual")
+
+    plt.show()
     
 
 if __name__ == "__main__":
