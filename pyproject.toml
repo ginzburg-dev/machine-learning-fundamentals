@@ -1,0 +1,13 @@
+[project]
+name = "machine-learning-fundamentals"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "matplotlib>=3.11.0",
+    "numpy<2",
+    "scikit-learn>=1.9.0",
+    "structlog>=26.1.0",
+    "torch>=2.2,<2.3",
+]

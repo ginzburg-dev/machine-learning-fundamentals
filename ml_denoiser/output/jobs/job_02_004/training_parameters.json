@@ -1,0 +1,12 @@
+{
+    "model_name": "UNetResidual",
+    "out_channels": 64,
+    "in_channels": 3,
+    "epochs": 20,
+    "batch_size": 8,
+    "patches_per_image": 1,
+    "patch_size": 128,
+    "n_first_samples": 10,
+    "n_first_frames": 3,
+    "lr": 0.0001
+}
