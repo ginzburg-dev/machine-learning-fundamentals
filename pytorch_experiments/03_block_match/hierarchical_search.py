@@ -254,12 +254,12 @@ def compute_pyramid_motion_estimation(
     prefilter_kernel_size: int,
     motion_threshold: float,
     device: torch.device,
+    guide: torch.Tensor | None = None
 ) -> torch.Tensor:
     img1_levels = build_pyramid(target_, n_levels)
     img2_levels = build_pyramid(source_, n_levels)
 
     reversed_range_ = list(range(len(img1_levels)))[::-1]
-    guide: torch.Tensor | None = None
     final_flow_block: torch.Tensor | None = None
 
     for i in reversed_range_:
@@ -579,26 +579,156 @@ def test_feather_mask() -> None:
     plt.imshow(image_to_numpy(mask))
     plt.show()
 
-def test_frames() -> None:
-    frames1 = [0, 1, 2, 3, 4, 5, 6, 7, 8]
-    n_frames = 27
-    length = len(frames1)
+
+def pad_array(arr: list[str], n_frames: int,) -> list[str]:
+    length = len(arr)
     temporal_radius = n_frames // 2
-
-    (length - n_frames) // 2
-
-    tail_start = []
-    tail_end = []
-    for i in range(1, temporal_radius + 1):
-        index = min(i, length-1)
-        tail_start.append(frames1[index])
-    tail_end = [ length - i - 1 for i in tail_start]
-    result = tail_start[::-1]
-    result.extend(frames1)
-    result.extend(tail_end)
-    print(result)
+    pad_in = [arr[min(i, length - 1)] for i in range(1, temporal_radius + 1)]
+    pad_out = [arr[max(length - 1 - i, 0)] for i in range(1, temporal_radius + 1)]
+    return pad_in[::-1] + arr + pad_out
 
 
+def test_frames() -> None:
+    print(pad_array(["0", "1", "2", "3", "4", "5", "6", "7", "8"], 14))
+
+
+def get_sequence_list(input_dir: str) -> list[Path]:
+    filepath = Path(input_dir)
+    return sorted([
+        file for file in filepath.iterdir()
+        if file.suffix.lower() == ".jpg" and 
+        "warped" not in file.name 
+    ])
+
+
+def calculate_temporal_window_mv(
+        frames: list[torch.Tensor],
+        block_size: int,
+        search_radius: int,
+        overlap: int,
+        n_levels: int,
+        prefilter_kernel: int,
+        threshold: float,
+        device: torch.device,
+) -> tuple[list[torch.Tensor], list[torch.Tensor]]:
+        center_index = len(frames) // 2
+        center_tensor = frames[center_index]
+
+        forward_source = frames[center_index:]
+        backwards_source = frames[:center_index:-1]
+
+        result_mv = []
+        result_comp = []
+        flow_block: torch.Tensor | None = None
+        guide: torch.Tensor | None = None
+
+        for source in (backwards_source, forward_source):
+            mv = []
+            comp = []
+            for source_tensor in source:
+                flow_block = compute_pyramid_motion_estimation(
+                    center_tensor,
+                    source_tensor,
+                    block_size,
+                    search_radius,
+                    n_levels,
+                    prefilter_kernel,
+                    threshold,
+                    device,
+                    guide,
+                )
+                guide = flow_block
+                composed = compose_patches(source_tensor, flow_block, block_size, overlap, device)
+                mv.append(flow_block)
+                comp.append(composed)
+            result_mv.append(mv)
+            result_comp.append(comp)
+        
+        motion = result_mv[0][::-1] + [torch.zeros_like(center_tensor)] + result_mv[1]
+        comp = result_comp[0][::-1] + [center_tensor] + result_comp[1]
+        return (motion, comp)
+
+
+def render_mv_estimation(
+        input_sequence_folder: str,
+        n_frames: int,
+        block_size: int,
+        overlap: int,
+        search_radius: int,
+        n_levels: int,
+        prefilter_kernel: int,
+        threshold: float,
+        debug: bool,
+        device: torch.device,
+) -> None:
+    if not n_frames % 2:
+        LOGGER.error("n_frames should be odd. Skipping.")
+        return
+
+    filepath = Path(input_sequence_folder)
+
+    frames = sorted([
+        file for file in filepath.iterdir()
+        if file.suffix.lower() == ".jpg" and 
+        "warped" not in file.name 
+    ])
+    
+    
+
+    for i in range(1, len(frames)):
+        LOGGER.info("Processing image", name=frames[i-1].name)
+
+        target_tensor = numpy_to_tensor(plt.imread(frames[i-1]))
+        source_tensor = numpy_to_tensor(plt.imread(frames[i]))
+
+        flow_block = compute_pyramid_motion_estimation(
+            target_tensor,
+            source_tensor,
+            block_size,
+            search_radius,
+            n_levels,
+            prefilter_kernel,
+            threshold,
+            device,
+        )
+
+        composed = compose_patches(source_tensor, flow_block, block_size, overlap, device)
+
+        alpha = composed[:, 3:4, ...]
+        alpha_rgba = torch.cat([alpha, alpha, alpha, alpha], dim=1)
+
+        tensor_mix = mix2tensors(composed, target_tensor)
+
+        if debug:
+            th, tw = target_tensor.shape[-2:]
+            flow_block_vis = resize_tensor_to(flow_block, (th, tw), adaptive_value_scale=False)
+            debug_tensor = torch.cat(
+                        [
+                            tensor_mix,
+                            target_tensor,
+                            flow_to_image(flow_block_vis),
+                            (tensor_mix - target_tensor).abs() * 0.5 + 0.5,
+                            alpha_rgba
+                        ],
+                        dim=3
+            )
+            plt.imsave(
+                output_filepath(frames[i-1], debug=True),
+                image_to_numpy(debug_tensor).clip(0, 1),
+                pil_kwargs={
+                    "quality": 100,
+                    "subsampling": 0,
+                },
+            )
+
+        plt.imsave(
+            output_filepath(frames[i-1]),
+            image_to_numpy(tensor_mix).clip(0, 1),
+            pil_kwargs={
+                "quality": 100,
+                "subsampling": 0,
+            },
+        )
 
 if __name__ == "__main__":
     input_folder = "/Users/dmitryginzburg/Yandex.Disk.localized/MG_block_match/jpg1/"
@@ -608,9 +738,9 @@ if __name__ == "__main__":
     #     n_frames=3,
     #     block_size=32,
     #     overlap=8,
-    #     search_radius= 3,
+    #     search_radius= 4,
     #     n_levels=3,
-    #     prefilter_kernel=3,
+    #     prefilter_kernel=5,
     #     threshold=0.005,
     #     debug=True,
     #     device=_DEVICE,
